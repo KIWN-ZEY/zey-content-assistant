@@ -176,9 +176,10 @@ app.post("/api/generate", async (req, res) => {
     res.json({ output: output || "ما وصل رد، جرّبي مرة ثانية." });
   } catch (e) {
     console.error(e);
-    res
-      .status(502)
-      .json({ error: "صار خطأ بالاتصال بالذكاء الاصطناعي. جرّبي مرة ثانية." });
+    res.status(502).json({
+      error: "صار خطأ بالاتصال بالذكاء الاصطناعي. جرّبي مرة ثانية.",
+      detail: String(e && e.message ? e.message : e),
+    });
   }
 });
 
