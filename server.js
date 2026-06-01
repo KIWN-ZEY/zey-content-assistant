@@ -16,11 +16,19 @@ const API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.ZEY_MODEL || "claude-sonnet-4-20250514";
 const MAX_TOKENS = 1000;
 
-const DATA_DIR = path.join(__dirname, "data");
+// يدعم الترتيبين: ملفات داخل مجلّدات (public/ و data/) أو ملفات مسطّحة بجانب server.js
+const INDEX_FILE = fs.existsSync(path.join(__dirname, "public", "index.html"))
+  ? path.join(__dirname, "public", "index.html")
+  : path.join(__dirname, "index.html");
+const DATA_DIR = fs.existsSync(path.join(__dirname, "data"))
+  ? path.join(__dirname, "data")
+  : __dirname;
 const LIB_FILE = path.join(DATA_DIR, "library.json");
 
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+
+// نقدّم الواجهة فقط (بدون كشف ملفات المصدر الأخرى)
+app.get("/", (req, res) => res.sendFile(INDEX_FILE));
 
 // ===== سياق البراند (سرّي عن الواجهة — يُرسل للذكاء فقط) =====
 const BRAND = `أنت مساعد المحتوى الرسمي لبراند "زِيّ" (ZEY).
