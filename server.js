@@ -13,7 +13,7 @@ const crypto = require("crypto");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.ZEY_MODEL || "claude-sonnet-4-20250514";
+const MODEL = process.env.ZEY_MODEL || "claude-sonnet-4-5";
 const MAX_TOKENS = 1000;
 
 // يدعم الترتيبين: ملفات داخل مجلّدات (public/ و data/) أو ملفات مسطّحة بجانب server.js
@@ -176,10 +176,9 @@ app.post("/api/generate", async (req, res) => {
     res.json({ output: output || "ما وصل رد، جرّبي مرة ثانية." });
   } catch (e) {
     console.error(e);
-    res.status(502).json({
-      error: "صار خطأ بالاتصال بالذكاء الاصطناعي. جرّبي مرة ثانية.",
-      detail: String(e && e.message ? e.message : e),
-    });
+    res
+      .status(502)
+      .json({ error: "صار خطأ بالاتصال بالذكاء الاصطناعي. جرّبي مرة ثانية." });
   }
 });
 
