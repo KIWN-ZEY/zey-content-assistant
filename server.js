@@ -53,12 +53,18 @@ const PILLARS = [
   "محتوى قيمة / نصيحة",
 ];
 
-// ===== تخزين المكتبة (ملف JSON بسيط) =====
+// ===== تخزين المكتبة =====
+// إذا توفّر DATABASE_URL (قاعدة بيانات Postgres مثل Neon) → تخزين دائم.
+// وإلا → ملف JSON محلي (مؤقت، يصلح للتجربة فقط).
+const USE_DB = !!process.env.DATABASE_URL;
+let pool = null;
+
+// --- نمط الملف (احتياطي) ---
 function ensureStore() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(LIB_FILE)) fs.writeFileSync(LIB_FILE, "[]", "utf8");
 }
-function readLib() {
+function readFileLib() {
   ensureStore();
   try {
     return JSON.parse(fs.readFileSync(LIB_FILE, "utf8")) || [];
@@ -66,15 +72,87 @@ function readLib() {
     return [];
   }
 }
-function writeLib(items) {
+function writeFileLib(items) {
   ensureStore();
   fs.writeFileSync(LIB_FILE, JSON.stringify(items, null, 2), "utf8");
 }
 
+// --- تهيئة قاعدة البيانات ---
+async function initStore() {
+  if (!USE_DB) return;
+  const { Pool } = require("pg");
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS library (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      pillar TEXT DEFAULT '',
+      input TEXT DEFAULT '',
+      output TEXT NOT NULL,
+      approved BOOLEAN DEFAULT false,
+      ts BIGINT NOT NULL
+    )
+  `);
+  console.log("التخزين: قاعدة بيانات Postgres (دائم).");
+}
+
+// --- واجهة موحّدة (async) ---
+async function getLib() {
+  if (USE_DB) {
+    const r = await pool.query("SELECT * FROM library ORDER BY ts ASC");
+    return r.rows.map((x) => ({ ...x, approved: !!x.approved, ts: Number(x.ts) }));
+  }
+  return readFileLib();
+}
+async function addItem(item) {
+  if (USE_DB) {
+    await pool.query(
+      "INSERT INTO library (id,type,pillar,input,output,approved,ts) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+      [item.id, item.type, item.pillar, item.input, item.output, item.approved, item.ts]
+    );
+    return item;
+  }
+  const lib = readFileLib();
+  lib.push(item);
+  writeFileLib(lib);
+  return item;
+}
+async function setApproved(id, approved) {
+  if (USE_DB) {
+    const r = await pool.query(
+      "UPDATE library SET approved=$1 WHERE id=$2 RETURNING *",
+      [approved, id]
+    );
+    if (!r.rows[0]) return null;
+    const x = r.rows[0];
+    return { ...x, approved: !!x.approved, ts: Number(x.ts) };
+  }
+  const lib = readFileLib();
+  const item = lib.find((i) => i.id === id);
+  if (!item) return null;
+  item.approved = approved;
+  writeFileLib(lib);
+  return item;
+}
+async function deleteItem(id) {
+  if (USE_DB) {
+    const r = await pool.query("DELETE FROM library WHERE id=$1", [id]);
+    return r.rowCount > 0;
+  }
+  const lib = readFileLib();
+  const next = lib.filter((i) => i.id !== id);
+  if (next.length === lib.length) return false;
+  writeFileLib(next);
+  return true;
+}
+
 // ===== بناء البرومبتات (على الخادم) =====
-function buildExamplesBlock(pillar) {
+async function buildExamplesBlock(pillar) {
   // حتى 3 أمثلة معتمدة (⭐) بنفس العمود لتحسين الإنتاج (few-shot)
-  const lib = readLib();
+  const lib = await getLib();
   const examples = lib
     .filter((i) => i.approved && i.type === "caption" && i.pillar === pillar)
     .slice(-3)
@@ -84,7 +162,7 @@ function buildExamplesBlock(pillar) {
   return `\n\nهذه أمثلة معتمدة سابقة بنفس العمود — طابِق أسلوبها ومستواها:\n${examples}\n`;
 }
 
-function buildTask(body) {
+async function buildTask(body) {
   const { type } = body;
   if (type === "caption") {
     const pillar = PILLARS.includes(body.pillar) ? body.pillar : PILLARS[0];
@@ -98,7 +176,7 @@ function buildTask(body) {
       `2) نفس الكابشن بالعبرية.\n` +
       `3) 5-7 هاشتاغات مناسبة.\n` +
       `اكتب بشكل منسّق وواضح.` +
-      buildExamplesBlock(pillar)
+      (await buildExamplesBlock(pillar))
     );
   }
   if (type === "idea") {
@@ -170,7 +248,7 @@ app.post("/api/generate", async (req, res) => {
         error: "مفتاح API غير مُعدّ على الخادم. راجع ملف README.",
       });
     }
-    const task = buildTask(req.body || {});
+    const task = await buildTask(req.body || {});
     if (!task) return res.status(400).json({ error: "نوع طلب غير معروف." });
     const output = await callClaude(task);
     res.json({ output: output || "ما وصل رد، جرّبي مرة ثانية." });
@@ -183,53 +261,71 @@ app.post("/api/generate", async (req, res) => {
 });
 
 // جلب المكتبة المشتركة
-app.get("/api/library", (req, res) => {
-  res.json(readLib());
+app.get("/api/library", async (req, res) => {
+  try {
+    res.json(await getLib());
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "تعذّر جلب المكتبة." });
+  }
 });
 
 // حفظ عنصر جديد
-app.post("/api/library", (req, res) => {
-  const b = req.body || {};
-  if (!b.type || !b.output) {
-    return res.status(400).json({ error: "بيانات ناقصة." });
+app.post("/api/library", async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.type || !b.output) {
+      return res.status(400).json({ error: "بيانات ناقصة." });
+    }
+    const item = {
+      id: crypto.randomUUID(),
+      type: b.type, // caption | idea | reply
+      pillar: b.pillar || "",
+      input: b.input || "",
+      output: b.output,
+      approved: !!b.approved,
+      ts: Date.now(),
+    };
+    await addItem(item);
+    res.json(item);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "تعذّر حفظ العنصر." });
   }
-  const lib = readLib();
-  const item = {
-    id: crypto.randomUUID(),
-    type: b.type, // caption | idea | reply
-    pillar: b.pillar || "",
-    input: b.input || "",
-    output: b.output,
-    approved: !!b.approved,
-    ts: Date.now(),
-  };
-  lib.push(item);
-  writeLib(lib);
-  res.json(item);
 });
 
 // اعتماد/إلغاء اعتماد عنصر
-app.patch("/api/library/:id", (req, res) => {
-  const lib = readLib();
-  const item = lib.find((i) => i.id === req.params.id);
-  if (!item) return res.status(404).json({ error: "العنصر غير موجود." });
-  if (typeof req.body.approved === "boolean") item.approved = req.body.approved;
-  writeLib(lib);
-  res.json(item);
+app.patch("/api/library/:id", async (req, res) => {
+  try {
+    if (typeof req.body.approved !== "boolean")
+      return res.status(400).json({ error: "قيمة غير صحيحة." });
+    const item = await setApproved(req.params.id, req.body.approved);
+    if (!item) return res.status(404).json({ error: "العنصر غير موجود." });
+    res.json(item);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "تعذّر تحديث العنصر." });
+  }
 });
 
 // حذف عنصر
-app.delete("/api/library/:id", (req, res) => {
-  let lib = readLib();
-  const before = lib.length;
-  lib = lib.filter((i) => i.id !== req.params.id);
-  if (lib.length === before)
-    return res.status(404).json({ error: "العنصر غير موجود." });
-  writeLib(lib);
-  res.json({ ok: true });
+app.delete("/api/library/:id", async (req, res) => {
+  try {
+    const ok = await deleteItem(req.params.id);
+    if (!ok) return res.status(404).json({ error: "العنصر غير موجود." });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "تعذّر حذف العنصر." });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`مساعد محتوى زِيّ يعمل على http://localhost:${PORT}`);
-  if (!API_KEY) console.warn("تحذير: ANTHROPIC_API_KEY غير مُعدّ.");
-});
+initStore()
+  .catch((e) => console.error("خطأ بتهيئة التخزين:", e))
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`مساعد محتوى زِيّ يعمل على http://localhost:${PORT}`);
+      if (!USE_DB) console.log("التخزين: ملف محلي (مؤقت — أضف DATABASE_URL للتثبيت).");
+      if (!API_KEY) console.warn("تحذير: ANTHROPIC_API_KEY غير مُعدّ.");
+    });
+  });
