@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>مساعد محتوى زِيّ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --olive:#46532f; --olive-d:#333d22; --cream:#f3eddf; --paper:#fbf7ee;
+    --clay:#b06a3e; --ink:#2b2a22; --muted:#7c7766; --line:#ddd3bf;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'IBM Plex Sans Arabic',sans-serif; color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(176,106,62,.06), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(70,83,47,.07), transparent 45%),
+      var(--cream);
+    min-height:100vh; padding:28px 16px 48px;
+  }
+  .wrap{max-width:680px;margin:0 auto;}
+  .head{display:flex;align-items:baseline;gap:12px;border-bottom:2px solid var(--olive);padding-bottom:14px;margin-bottom:6px;}
+  .logo{font-family:'El Messiri',serif;font-weight:700;font-size:38px;color:var(--olive);line-height:1;letter-spacing:1px;}
+  .sub{font-size:13px;color:var(--muted);}
+  .tag{font-size:12px;color:var(--clay);margin:10px 0 22px;font-weight:500;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .tab{flex:1;min-width:96px;border:1px solid var(--line);background:var(--paper);color:var(--muted);
+    padding:11px 8px;border-radius:11px;cursor:pointer;font-family:inherit;font-size:14px;font-weight:500;transition:.18s;}
+  .tab:hover{border-color:var(--olive);color:var(--olive);}
+  .tab.on{background:var(--olive);color:var(--paper);border-color:var(--olive);box-shadow:0 4px 14px rgba(70,83,47,.25);}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 30px rgba(43,42,34,.05);}
+  .label{display:block;font-size:13px;font-weight:600;color:var(--olive-d);margin:14px 0 7px;}
+  .label:first-child{margin-top:0;}
+  .input,.select{width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 13px;font-family:inherit;font-size:14px;color:var(--ink);}
+  textarea.input{min-height:90px;resize:vertical;line-height:1.7;}
+  .input:focus,.select:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(70,83,47,.12);}
+  .btn{margin-top:18px;width:100%;background:var(--olive);color:var(--paper);border:none;border-radius:11px;padding:13px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:.18s;}
+  .btn:hover{background:var(--olive-d);}
+  .btn:disabled{opacity:.55;cursor:wait;}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6;}
+  .result{position:relative;margin-top:18px;background:#fff;border:1px solid var(--line);border-right:4px solid var(--clay);border-radius:12px;padding:18px 18px 18px 16px;}
+  .pre{font-family:inherit;font-size:14px;line-height:1.9;white-space:pre-wrap;margin:0;color:var(--ink);}
+  .copy{position:absolute;left:14px;top:14px;background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:5px 11px;font-family:inherit;font-size:12px;color:var(--olive);cursor:pointer;}
+  .copy:hover{background:var(--olive);color:var(--paper);}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .save{flex:1;min-width:130px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;font-size:13px;color:var(--olive);cursor:pointer;font-weight:500;}
+  .save:hover{border-color:var(--olive);}
+  .save.star:hover{background:var(--clay);color:#fff;border-color:var(--clay);}
+  .err{margin-top:14px;color:#9a3412;font-size:13px;background:#fdf0e8;border:1px solid #f1c9b0;border-radius:10px;padding:10px 13px;}
+  .ok{margin-top:12px;color:var(--olive-d);font-size:13px;background:#eef1e6;border:1px solid #cfd8bb;border-radius:10px;padding:10px 13px;}
+  .foot{text-align:center;font-size:11px;color:var(--muted);margin-top:24px;}
+  .item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;}
+  .item .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+  .badge{background:var(--cream);border:1px solid var(--line);border-radius:20px;padding:2px 10px;font-weight:500;color:var(--olive);}
+  .badge.star{background:var(--clay);color:#fff;border-color:var(--clay);}
+  .item .out{font-size:13px;line-height:1.8;white-space:pre-wrap;color:var(--ink);max-height:160px;overflow:auto;}
+  .item .row{display:flex;gap:8px;margin-top:10px;}
+  .mini{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-family:inherit;font-size:12px;cursor:pointer;color:var(--olive);}
+  .mini:hover{border-color:var(--olive);}
+  .mini.del{color:#9a3412;}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:18px;}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;}
+  .stat .n{font-family:'El Messiri',serif;font-size:30px;font-weight:700;color:var(--olive);}
+  .stat .t{font-size:12px;color:var(--muted);margin-top:4px;}
+  .barrow{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:13px;}
+  .barrow .bl{width:140px;color:var(--olive-d);}
+  .bar{flex:1;background:var(--cream);border-radius:8px;height:14px;overflow:hidden;}
+  .bar span{display:block;height:100%;background:var(--clay);}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:30px 10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="logo">زِيّ</span>
+    <span class="sub">مساعد محتوى السوشال ميديا</span>
+  </div>
+  <div class="tag">أداة داخلية — اكتبي طلبك وخذي محتوى جاهز على هوية زِيّ</div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="caption">✍️ كابشن</button>
+    <button class="tab" data-tab="ideas">💡 أفكار</button>
+    <button class="tab" data-tab="reply">💬 رد عميل</button>
+    <button class="tab" data-tab="library">📚 المكتبة</button>
+    <button class="tab" data-tab="stats">📊 تحليل</button>
+  </div>
+
+  <div class="card" id="panel"></div>
+
+  <div class="foot">زِيّ · أداة داخلية — كل مخرجاتها تحتاج موافقة الإدارة قبل النشر</div>
+</div>
+
+<script>
+const PILLARS = [
+  "منتجات وعروض",
+  "خلف الكواليس (الطباعة والتطريز)",
+  "أعمال وعملاء",
+  "محتوى قيمة / نصيحة",
+];
+const TYPE_LABEL = { caption: "كابشن", idea: "فكرة", reply: "رد عميل" };
+
+let state = { tab: "caption", loading: false };
+const panel = document.getElementById("panel");
+
+function esc(s){ return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c])); }
+
+async function api(path, opts){
+  const res = await fetch(path, opts);
+  if(!res.ok){ let m="خطأ"; try{m=(await res.json()).error||m;}catch{} throw new Error(m); }
+  return res.json();
+}
+async function generate(payload){
+  return api("/api/generate", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+}
+async function saveItem(item){
+  return api("/api/library", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(item) });
+}
+
+document.querySelectorAll(".tab").forEach(t=>{
+  t.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    t.classList.add("on");
+    state.tab = t.dataset.tab;
+    render();
+  });
+});
+
+// ===== شريط النتيجة مع أزرار النسخ والحفظ =====
+function resultBlock(text, meta){
+  const id = "r"+Math.random().toString(36).slice(2);
+  setTimeout(()=>{
+    const box = document.getElementById(id);
+    if(!box) return;
+    box.querySelector(".copy").onclick = ()=>{
+      navigator.clipboard?.writeText(text);
+      box.querySelector(".copy").textContent = "✓ تم النسخ";
+      setTimeout(()=>{ const c=box.querySelector(".copy"); if(c) c.textContent="نسخ"; },1500);
+    };
+    if(meta){
+      box.querySelector(".s-save").onclick = ()=>doSave(box,{...meta,output:text,approved:false});
+      box.querySelector(".s-star").onclick = ()=>doSave(box,{...meta,output:text,approved:true});
+    }
+  },0);
+  const actions = meta ? `<div class="actions">
+      <button class="save s-save">💾 احفظ</button>
+      <button class="save star s-star">⭐ احفظ كمعتمد</button>
+    </div>` : "";
+  return `<div class="result" id="${id}">
+    <button class="copy">نسخ</button>
+    <pre class="pre">${esc(text)}</pre>
+    ${actions}
+    <div class="msg"></div>
+  </div>`;
+}
+async function doSave(box, item){
+  const msg = box.querySelector(".msg");
+  try{
+    await saveItem(item);
+    msg.innerHTML = `<div class="ok">${item.approved?"تم الحفظ كمعتمد ⭐ — رح يُستخدم كمثال للتحسين.":"تم الحفظ في المكتبة المشتركة."}</div>`;
+    box.querySelectorAll(".save").forEach(b=>b.disabled=true);
+  }catch(e){ msg.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+}
+
+// ===== التبويبات =====
+function render(){
+  if(state.tab==="caption") return renderCaption();
+  if(state.tab==="ideas") return renderIdeas();
+  if(state.tab==="reply") return renderReply();
+  if(state.tab==="library") return renderLibrary();
+  if(state.tab==="stats") return renderStats();
+}
+
+function renderCaption(){
+  panel.innerHTML = `
+    <label class="label">عمود المحتوى</label>
+    <select class="select" id="pillar">${PILLARS.map(p=>`<option>${p}</option>`).join("")}</select>
+    <label class="label">موضوع المنشور</label>
+    <textarea class="input" id="brief" placeholder="مثال: قميص بولو مطرّز بشعار شركة، لون كحلي"></textarea>
+    <button class="btn" id="go">ولّد الكابشن</button>
+    <div id="out"></div>`;
+  document.getElementById("go").onclick = async ()=>{
+    const pillar = document.getElementById("pillar").value;
+    const brief = document.getElementById("brief").value.trim();
+    if(!brief) return;
+    await runGen({type:"caption",pillar,brief}, {type:"caption",pillar,input:brief});
+  };
+}
+function renderIdeas(){
+  panel.innerHTML = `
+    <p class="hint">يقترح 5 أفكار منشورات لهالأسبوع، موزّعة على الأعمدة الأربعة.</p>
+    <button class="btn" id="go">ولّد 5 أفكار</button>
+    <div id="out"></div>`;
+  document.getElementById("go").onclick = async ()=>{
+    await runGen({type:"idea"}, {type:"idea",pillar:"",input:"أفكار أسبوعية"});
+  };
+}
+function renderReply(){
+  panel.innerHTML = `
+    <label class="label">رسالة العميل</label>
+    <textarea class="input" id="msg" placeholder="الصقي رسالة العميل هون..."></textarea>
+    <p class="hint">ملاحظة: لأي سؤال عن سعر كميات كبيرة، الأداة بتطلب التأكيد مع الإدارة — لا تعطي سعر نهائي بنفسك.</p>
+    <button class="btn" id="go">اقترح رداً</button>
+    <div id="out"></div>`;
+  document.getElementById("go").onclick = async ()=>{
+    const message = document.getElementById("msg").value.trim();
+    if(!message) return;
+    await runGen({type:"reply",message}, {type:"reply",pillar:"",input:message});
+  };
+}
+
+async function runGen(payload, meta){
+  const go = document.getElementById("go");
+  const out = document.getElementById("out");
+  go.disabled = true; go.textContent = "...عم يجهّز"; out.innerHTML="";
+  try{
+    const { output } = await generate(payload);
+    out.innerHTML = resultBlock(output, meta);
+  }catch(e){
+    out.innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  }finally{
+    go.disabled = false;
+    go.textContent = payload.type==="idea" ? "ولّد 5 أفكار" : (payload.type==="reply"?"اقترح رداً":"ولّد الكابشن");
+  }
+}
+
+// ===== المكتبة =====
+async function renderLibrary(){
+  panel.innerHTML = `<div class="empty">...عم نحمّل المكتبة</div>`;
+  let lib;
+  try{ lib = await api("/api/library"); }
+  catch(e){ panel.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  lib.sort((a,b)=>b.ts-a.ts);
+  if(!lib.length){ panel.innerHTML = `<div class="empty">المكتبة فاضية. ولّدي محتوى واحفظيه ليظهر هون.</div>`; return; }
+  panel.innerHTML = lib.map(i=>`
+    <div class="item" data-id="${i.id}">
+      <div class="meta">
+        <span class="badge ${i.approved?"star":""}">${i.approved?"⭐ معتمد":TYPE_LABEL[i.type]||i.type}</span>
+        ${i.pillar?`<span class="badge">${esc(i.pillar)}</span>`:""}
+        <span>${new Date(i.ts).toLocaleDateString("ar-EG")}</span>
+      </div>
+      ${i.input?`<div class="meta">المدخل: ${esc(i.input)}</div>`:""}
+      <div class="out">${esc(i.output)}</div>
+      <div class="row">
+        <button class="mini t-star">${i.approved?"إلغاء الاعتماد":"⭐ اعتمد"}</button>
+        <button class="mini del t-del">حذف</button>
+      </div>
+    </div>`).join("");
+  panel.querySelectorAll(".item").forEach(el=>{
+    const id = el.dataset.id;
+    el.querySelector(".t-star").onclick = async ()=>{
+      const cur = lib.find(x=>x.id===id);
+      try{ await api("/api/library/"+id,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:!cur.approved})}); renderLibrary(); }
+      catch(e){ alert(e.message); }
+    };
+    el.querySelector(".t-del").onclick = async ()=>{
+      if(!confirm("حذف هذا العنصر؟")) return;
+      try{ await api("/api/library/"+id,{method:"DELETE"}); renderLibrary(); }
+      catch(e){ alert(e.message); }
+    };
+  });
+}
+
+// ===== التحليل =====
+async function renderStats(){
+  panel.innerHTML = `<div class="empty">...عم نحسب الإحصائيات</div>`;
+  let lib;
+  try{ lib = await api("/api/library"); }
+  catch(e){ panel.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  const total = lib.length;
+  const byType = { caption:0, idea:0, reply:0 };
+  const byPillar = {}; PILLARS.forEach(p=>byPillar[p]=0);
+  let approved = 0;
+  lib.forEach(i=>{
+    if(byType[i.type]!==undefined) byType[i.type]++;
+    if(i.approved) approved++;
+    if(i.type==="caption" && byPillar[i.pillar]!==undefined) byPillar[i.pillar]++;
+  });
+  const capTotal = byType.caption || 1;
+  const bars = PILLARS.map(p=>{
+    const v = byPillar[p]; const pct = Math.round((v/capTotal)*100);
+    return `<div class="barrow"><span class="bl">${p}</span><div class="bar"><span style="width:${byType.caption?pct:0}%"></span></div><span>${v}</span></div>`;
+  }).join("");
+  panel.innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="n">${total}</div><div class="t">إجمالي المخرجات</div></div>
+      <div class="stat"><div class="n">${approved}</div><div class="t">معتمدة ⭐</div></div>
+      <div class="stat"><div class="n">${byType.caption}</div><div class="t">كابشنز</div></div>
+      <div class="stat"><div class="n">${byType.idea}</div><div class="t">أفكار</div></div>
+    </div>
+    <label class="label">توزيع الكابشنز على الأعمدة</label>
+    ${total?bars:`<div class="empty">لا توجد بيانات بعد.</div>`}
+    <button class="btn" id="analyze" ${total?"":"disabled"}>🔍 حلّل وطوّر</button>
+    <div id="aout"></div>`;
+  const ab = document.getElementById("analyze");
+  if(ab) ab.onclick = async ()=>{
+    ab.disabled=true; ab.textContent="...عم يحلّل";
+    const aout = document.getElementById("aout");
+    const summary =
+      `الإجمالي: ${total} | معتمدة: ${approved}\n`+
+      `حسب النوع: كابشن ${byType.caption}، أفكار ${byType.idea}، ردود ${byType.reply}\n`+
+      `توزيع الكابشنز على الأعمدة: ${PILLARS.map(p=>p+"="+byPillar[p]).join("، ")}\n`+
+      `عناوين/مدخلات حديثة:\n`+
+      lib.slice(-15).map(i=>`- [${TYPE_LABEL[i.type]||i.type}] ${i.input||"(بدون مدخل)"}`).join("\n");
+    try{
+      const { output } = await generate({type:"analyze",summary});
+      aout.innerHTML = resultBlock(output, null);
+    }catch(e){ aout.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    finally{ ab.disabled=false; ab.textContent="🔍 حلّل وطوّر"; }
+  };
+}
+
+render();
+</script>
+</body>
+</html>

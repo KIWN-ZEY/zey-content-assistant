@@ -1,0 +1,15 @@
+{
+  "name": "zey-content-assistant",
+  "version": "1.0.0",
+  "description": "مساعد محتوى زِيّ — أداة داخلية لإنتاج محتوى سوشال ميديا على هوية زِيّ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
